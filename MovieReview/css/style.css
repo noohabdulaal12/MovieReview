@@ -33,6 +33,27 @@ body {
     border-radius: 8px;
 }
 
+.movie-image {
+    width: 100%;
+    height: 320px;
+    object-fit: contain;
+    object-position: center;
+    background-color: #e9ecef;
+}
+
+.movie-card {
+    overflow: hidden;
+}
+
+.detail-image {
+    width: 100%;
+    height: auto;
+    max-height: 520px;
+    object-fit: contain;
+    object-position: center;
+    background-color: #e9ecef;
+}
+
 @media (max-width: 767px) {
     .sidebar {
         min-height: auto;
