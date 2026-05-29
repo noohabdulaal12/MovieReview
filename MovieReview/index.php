@@ -1,9 +1,46 @@
 <?php
 include_once 'includes/db_connect.php';
 
-$search = '';
-if (isset($_GET['search'])) {
-    $search = trim($_GET['search']);
+function bindParams($stmt, $types, $params)
+{
+    if ($types == '') {
+        return;
+    }
+
+    $bindValues = [];
+    $bindValues[] = $stmt;
+    $bindValues[] = $types;
+
+    for ($i = 0; $i < count($params); $i++) {
+        $bindValues[] = &$params[$i];
+    }
+
+    call_user_func_array('mysqli_stmt_bind_param', $bindValues);
+}
+
+$keyword = '';
+if (isset($_GET['keyword'])) {
+    $keyword = trim($_GET['keyword']);
+}
+
+$startDate = '';
+if (isset($_GET['start_date'])) {
+    $startDate = trim($_GET['start_date']);
+}
+
+$endDate = '';
+if (isset($_GET['end_date'])) {
+    $endDate = trim($_GET['end_date']);
+}
+
+$creator = '';
+if (isset($_GET['creator'])) {
+    $creator = trim($_GET['creator']);
+}
+
+$sort = '';
+if (isset($_GET['sort'])) {
+    $sort = trim($_GET['sort']);
 }
 
 $categoryId = 0;
@@ -14,28 +51,56 @@ if (isset($_GET['category'])) {
 $categorySql = 'SELECT Id, CategoryName FROM mr_Categories ORDER BY CategoryName ASC';
 $categoryResult = mysqli_query($conn, $categorySql);
 
-$movieSql = "SELECT Id, Title, Description, ImageLink, VideoLink, AdditionDate
-             FROM mr_Movies
-             WHERE Status = 'published'";
+$movieSql = "SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.AdditionDate, m.ViewCount, u.Username
+             FROM mr_Movies m
+             INNER JOIN mr_Users u ON m.CreatorId = u.Id
+             WHERE m.Status = 'published'";
+
+$types = '';
+$params = [];
 
 if ($categoryId > 0) {
-    $movieSql .= " AND CategoryId = " . $categoryId;
+    $movieSql .= ' AND m.CategoryId = ?';
+    $types .= 'i';
+    $params[] = $categoryId;
 }
 
-if ($search != '') {
-    $movieSql .= " AND (Title LIKE ? OR Description LIKE ?)";
+if ($keyword != '') {
+    $movieSql .= ' AND MATCH(m.Title, m.Description) AGAINST(?)';
+    $types .= 's';
+    $params[] = $keyword;
 }
 
-$movieSql .= " ORDER BY AdditionDate DESC";
+if ($startDate != '') {
+    $movieSql .= ' AND m.AdditionDate >= ?';
+    $types .= 's';
+    $params[] = $startDate;
+}
 
-if ($search != '') {
-    $movieStmt = mysqli_prepare($conn, $movieSql);
-    $searchText = '%' . $search . '%';
-    mysqli_stmt_bind_param($movieStmt, 'ss', $searchText, $searchText);
-    mysqli_stmt_execute($movieStmt);
-    mysqli_stmt_bind_result($movieStmt, $movieId, $title, $description, $imageLink, $videoLink, $additionDate);
+if ($endDate != '') {
+    $movieSql .= ' AND m.AdditionDate <= ?';
+    $types .= 's';
+    $params[] = $endDate;
+}
+
+if ($creator != '') {
+    $movieSql .= ' AND u.Username LIKE ?';
+    $types .= 's';
+    $params[] = '%' . $creator . '%';
+}
+
+if ($sort == 'popular') {
+    $movieSql .= ' ORDER BY m.ViewCount DESC';
 } else {
-    $movieResult = mysqli_query($conn, $movieSql);
+    $movieSql .= ' ORDER BY m.AdditionDate DESC';
+}
+
+$movieStmt = mysqli_prepare($conn, $movieSql);
+
+if ($movieStmt) {
+    bindParams($movieStmt, $types, $params);
+    mysqli_stmt_execute($movieStmt);
+    mysqli_stmt_bind_result($movieStmt, $movieId, $title, $description, $imageLink, $videoLink, $additionDate, $viewCount, $creatorUsername);
 }
 ?>
 <!DOCTYPE html>
@@ -81,23 +146,53 @@ if ($search != '') {
     </nav>
 
     <main class="container py-4">
-        <div class="row mb-4">
-            <div class="col-lg-8">
-                <h1 class="h2">Published Movies</h1>
-                <p class="text-muted">Browse the latest movies.</p>
-            </div>
-            <div class="col-lg-4">
-                <form action="index.php" method="get" class="d-flex gap-2">
-                    <?php if ($categoryId > 0) { ?>
-                        <input type="hidden" name="category" value="<?php echo $categoryId; ?>">
-                    <?php } ?>
-                    <input type="text" class="form-control" name="search" placeholder="Search movies" value="<?php echo htmlspecialchars($search); ?>">
-                    <button type="submit" class="btn btn-primary">Search</button>
-                </form>
-            </div>
+        <div class="mb-4">
+            <h1 class="h2">Published Movies</h1>
+            <p class="text-muted">Browse and search the latest movies.</p>
         </div>
 
-        <?php if ($search == '' && !$movieResult) { ?>
+        <form action="index.php" method="get" class="search-box mb-4">
+            <?php if ($categoryId > 0) { ?>
+                <input type="hidden" name="category" value="<?php echo $categoryId; ?>">
+            <?php } ?>
+
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <label for="keyword" class="form-label">Keyword or Title</label>
+                    <input type="text" class="form-control" id="keyword" name="keyword" placeholder="Search title or description" value="<?php echo htmlspecialchars($keyword); ?>">
+                </div>
+
+                <div class="col-md-6 col-lg-2">
+                    <label for="startDate" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="startDate" name="start_date" value="<?php echo htmlspecialchars($startDate); ?>">
+                </div>
+
+                <div class="col-md-6 col-lg-2">
+                    <label for="endDate" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="endDate" name="end_date" value="<?php echo htmlspecialchars($endDate); ?>">
+                </div>
+
+                <div class="col-md-6 col-lg-2">
+                    <label for="creator" class="form-label">Creator</label>
+                    <input type="text" class="form-control" id="creator" name="creator" placeholder="Username" value="<?php echo htmlspecialchars($creator); ?>">
+                </div>
+
+                <div class="col-md-6 col-lg-2">
+                    <label for="sort" class="form-label">Sort</label>
+                    <select class="form-select" id="sort" name="sort">
+                        <option value="" <?php if ($sort == '') { echo 'selected'; } ?>>Newest</option>
+                        <option value="popular" <?php if ($sort == 'popular') { echo 'selected'; } ?>>Most Popular</option>
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <a href="index.php" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </div>
+        </form>
+
+        <?php if (!$movieStmt) { ?>
             <div class="alert alert-danger">
                 There was an error loading movies: <?php echo htmlspecialchars(mysqli_error($conn)); ?>
             </div>
@@ -107,7 +202,7 @@ if ($search != '') {
             <?php
             $hasMovies = false;
 
-            if ($search != '') {
+            if ($movieStmt) {
                 while (mysqli_stmt_fetch($movieStmt)) {
                     $hasMovies = true;
                     $shortDescription = substr($description, 0, 120);
@@ -121,8 +216,12 @@ if ($search != '') {
                             <div class="card-body d-flex flex-column">
                                 <h2 class="h5 card-title"><?php echo htmlspecialchars($title); ?></h2>
                                 <p class="card-text text-muted"><?php echo htmlspecialchars($shortDescription); ?></p>
-                                <div class="mt-auto d-flex gap-2">
-                                    <a href="<?php echo htmlspecialchars($videoLink); ?>" class="btn btn-outline-secondary btn-sm" target="_blank">Video Link</a>
+                                <p class="small text-muted mb-3">
+                                    Added: <?php echo htmlspecialchars($additionDate); ?><br>
+                                    Creator: <?php echo htmlspecialchars($creatorUsername); ?><br>
+                                    Views: <?php echo htmlspecialchars($viewCount); ?>
+                                </p>
+                                <div class="mt-auto">
                                     <a href="movie-details.php?id=<?php echo $movieId; ?>" class="btn btn-primary btn-sm">View More</a>
                                 </div>
                             </div>
@@ -130,36 +229,14 @@ if ($search != '') {
                     </div>
                     <?php
                 }
+
                 mysqli_stmt_close($movieStmt);
-            } elseif ($movieResult && mysqli_num_rows($movieResult) > 0) {
-                while ($movie = mysqli_fetch_assoc($movieResult)) {
-                    $hasMovies = true;
-                    $shortDescription = substr($movie['Description'], 0, 120);
-                    if (strlen($movie['Description']) > 120) {
-                        $shortDescription .= '...';
-                    }
-                    ?>
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card movie-card h-100 shadow-sm">
-                            <img src="<?php echo htmlspecialchars($movie['ImageLink']); ?>" class="card-img-top movie-image" alt="<?php echo htmlspecialchars($movie['Title']); ?>">
-                            <div class="card-body d-flex flex-column">
-                                <h2 class="h5 card-title"><?php echo htmlspecialchars($movie['Title']); ?></h2>
-                                <p class="card-text text-muted"><?php echo htmlspecialchars($shortDescription); ?></p>
-                                <div class="mt-auto d-flex gap-2">
-                                    <a href="<?php echo htmlspecialchars($movie['VideoLink']); ?>" class="btn btn-outline-secondary btn-sm" target="_blank">Video Link</a>
-                                    <a href="movie-details.php?id=<?php echo $movie['Id']; ?>" class="btn btn-primary btn-sm">View More</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php
-                }
             }
             ?>
 
             <?php if (!$hasMovies) { ?>
                 <div class="col-12">
-                    <div class="alert alert-info">No published movies found.</div>
+                    <div class="alert alert-info">No movies found.</div>
                 </div>
             <?php } ?>
         </div>
