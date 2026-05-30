@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 include_once 'includes/db_connect.php';
 
@@ -23,7 +27,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
                 $messageType = 'danger';
             } else {
                 $userId = $_SESSION['Id'];
-                $commentSql = 'INSERT INTO mr_Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?)';
+                $commentSql = 'INSERT INTO Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?)';
                 $commentStmt = mysqli_prepare($conn, $commentSql);
                 mysqli_stmt_bind_param($commentStmt, 'iis', $userId, $movieId, $commentText);
 
@@ -52,7 +56,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
                 $messageType = 'danger';
             } else {
                 $userId = $_SESSION['Id'];
-                $ratingSql = 'INSERT INTO mr_Ratings (UserId, MovieId, StarCount)
+                $ratingSql = 'INSERT INTO Ratings (UserId, MovieId, StarCount)
                               VALUES (?, ?, ?)
                               ON DUPLICATE KEY UPDATE StarCount = VALUES(StarCount)';
                 $ratingStmt = mysqli_prepare($conn, $ratingSql);
@@ -74,7 +78,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['delete_comment'])) {
         if (isset($_SESSION['UserType']) && $_SESSION['UserType'] == 'admin') {
             $commentId = (int) $_POST['comment_id'];
-            $deleteSql = 'DELETE FROM mr_Comments WHERE Id = ? AND MovieId = ?';
+            $deleteSql = 'DELETE FROM Comments WHERE UserId = ? AND MovieId = ?';
             $deleteStmt = mysqli_prepare($conn, $deleteSql);
             mysqli_stmt_bind_param($deleteStmt, 'ii', $commentId, $movieId);
 
@@ -95,11 +99,10 @@ $movie = null;
 
 if ($movieId > 0) {
     $sql = "SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.ViewCount,
-                   c.CategoryName, u.Username
-            FROM mr_Movies m
-            INNER JOIN mr_Categories c ON m.CategoryId = c.Id
-            INNER JOIN mr_Users u ON m.CreatorId = u.Id
-            WHERE m.Id = ? AND m.Status = 'published'";
+                   c.Category, u.Username
+            FROM Movies m
+            INNER JOIN Categories c ON m.CategoryId = c.Id
+            INNER JOIN Users u ON m.CreatorId = u.Id WHERE m.Id = ?";
 
     $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, 'i', $movieId);
@@ -114,7 +117,7 @@ if ($movieId > 0) {
             'ImageLink' => $imageLink,
             'VideoLink' => $videoLink,
             'ViewCount' => $viewCount,
-            'CategoryName' => $categoryName,
+            'Category' => $categoryName,
             'Username' => $username
         ];
     }
@@ -126,7 +129,7 @@ $averageRating = 0;
 $ratingCount = 0;
 
 if ($movie != null) {
-    $ratingSummarySql = 'SELECT AVG(StarCount), COUNT(*) FROM mr_Ratings WHERE MovieId = ?';
+    $ratingSummarySql = 'SELECT AVG(StarCount), COUNT(*) FROM Ratings WHERE MovieId = ?';
     $ratingSummaryStmt = mysqli_prepare($conn, $ratingSummarySql);
     mysqli_stmt_bind_param($ratingSummaryStmt, 'i', $movieId);
     mysqli_stmt_execute($ratingSummaryStmt);
@@ -142,9 +145,9 @@ if ($movie != null) {
 $comments = [];
 
 if ($movie != null) {
-    $commentsSql = "SELECT c.Id, c.CommentText, c.CreatedAt, u.Username
-                    FROM mr_Comments c
-                    INNER JOIN mr_Users u ON c.UserId = u.Id
+    $commentsSql = "SELECT c.UserId, c.CommentText, c.CreatedAt, u.Username
+                    FROM Comments c
+                    INNER JOIN Users u ON c.UserId = u.Id
                     WHERE c.MovieId = ?
                     ORDER BY c.CreatedAt DESC";
     $commentsStmt = mysqli_prepare($conn, $commentsSql);
@@ -154,7 +157,7 @@ if ($movie != null) {
 
     while (mysqli_stmt_fetch($commentsStmt)) {
         $comments[] = [
-            'Id' => $commentId,
+            'UserId' => $commentId,
             'CommentText' => $commentText,
             'CreatedAt' => $commentDate,
             'Username' => $commentUsername
@@ -208,7 +211,7 @@ if ($movie != null) {
 
                     <p class="text-muted mb-2">
                         Category:
-                        <strong><?php echo htmlspecialchars($movie['CategoryName']); ?></strong>
+                        <strong><?php echo htmlspecialchars($movie['Category']); ?></strong>
                     </p>
 
                     <p class="text-muted mb-2">

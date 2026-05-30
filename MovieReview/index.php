@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 include_once 'includes/db_connect.php';
 
 function bindParams($stmt, $types, $params)
@@ -48,13 +52,12 @@ if (isset($_GET['category'])) {
     $categoryId = (int) $_GET['category'];
 }
 
-$categorySql = 'SELECT Id, CategoryName FROM mr_Categories ORDER BY CategoryName ASC';
+$categorySql = 'SELECT Id, Category FROM Categories ORDER BY Category ASC';
 $categoryResult = mysqli_query($conn, $categorySql);
 
 $movieSql = "SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.AdditionDate, m.ViewCount, u.Username
-             FROM mr_Movies m
-             INNER JOIN mr_Users u ON m.CreatorId = u.Id
-             WHERE m.Status = 'published'";
+             FROM Movies m
+             INNER JOIN Users u ON m.CreatorId = u.Id";
 
 $types = '';
 $params = [];
@@ -130,7 +133,7 @@ if ($movieStmt) {
                         <?php while ($category = mysqli_fetch_assoc($categoryResult)) { ?>
                             <li class="nav-item">
                                 <a class="nav-link <?php if ($categoryId == $category['Id']) { echo 'active'; } ?>" href="index.php?category=<?php echo $category['Id']; ?>">
-                                    <?php echo htmlspecialchars($category['CategoryName']); ?>
+                                    <?php echo htmlspecialchars($category['Category']); ?>
                                 </a>
                             </li>
                         <?php } ?>

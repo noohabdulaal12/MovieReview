@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 include_once 'includes/db_connect.php';
 
@@ -12,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($username == '' || $password == '') {
         $message = 'Please enter both username and password.';
     } else {
-        $sql = 'SELECT Id, Username, Password, UserType FROM mr_Users WHERE Username = ?';
+        $sql = 'SELECT Id, Username, Password, UserType FROM Users WHERE Username = ?';
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, 's', $username);
         mysqli_stmt_execute($stmt);

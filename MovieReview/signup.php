@@ -1,4 +1,9 @@
 <?php
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 include_once 'includes/db_connect.php';
 
 $message = '';
@@ -22,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $message = 'Please choose a valid user type.';
         $messageType = 'danger';
     } else {
-        $checkSql = 'SELECT Id FROM mr_Users WHERE Username = ?';
+        $checkSql = 'SELECT Id FROM Users WHERE Username = ?';
         $checkStmt = mysqli_prepare($conn, $checkSql);
         mysqli_stmt_bind_param($checkStmt, 's', $username);
         mysqli_stmt_execute($checkStmt);
@@ -33,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $messageType = 'danger';
         } else {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $insertSql = 'INSERT INTO mr_Users (Username, Password, UserType, CreatedAt) VALUES (?, ?, ?, NOW())';
+            $insertSql = 'INSERT INTO Users (Username, Password, UserType, CreatedAt) VALUES (?, ?, ?, NOW())';
             $insertStmt = mysqli_prepare($conn, $insertSql);
             mysqli_stmt_bind_param($insertStmt, 'sss', $username, $hashedPassword, $userType);
 
