@@ -37,10 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $message = 'This username is already taken.';
             $messageType = 'danger';
         } else {
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $insertSql = 'INSERT INTO Users (Username, Password, UserType, CreatedAt) VALUES (?, ?, ?, NOW())';
+            $encryptionKey = 'sUpErsAlty392942';
+            $insertSql = 'INSERT INTO Users (Username, Password, UserType, CreatedAt) VALUES (?, AES_ENCRYPT(?, ?), ?, NOW())';
             $insertStmt = mysqli_prepare($conn, $insertSql);
-            mysqli_stmt_bind_param($insertStmt, 'sss', $username, $hashedPassword, $userType);
+            mysqli_stmt_bind_param($insertStmt, 'ssss', $username, $password, $encryptionKey, $userType);
 
             if (mysqli_stmt_execute($insertStmt)) {
                 $message = 'Account created successfully. You can now login.';

@@ -16,14 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($username == '' || $password == '') {
         $message = 'Please enter both username and password.';
     } else {
-        $sql = 'SELECT Id, Username, Password, UserType FROM Users WHERE Username = ?';
+        $encryptionKey = 'sUpErsAlty392942';
+        $sql = 'SELECT Id, Username, CAST(AES_DECRYPT(Password, ?) AS CHAR) as DecryptedPassword, UserType FROM Users WHERE Username = ?';
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, 's', $username);
+        mysqli_stmt_bind_param($stmt, 'ss', $encryptionKey, $username);
         mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $userId, $dbUsername, $hashedPassword, $userType);
+        mysqli_stmt_bind_result($stmt, $userId, $dbUsername, $decryptedPassword, $userType);
 
         if (mysqli_stmt_fetch($stmt)) {
-            if (password_verify($password, $hashedPassword)) {
+            if ($password === $decryptedPassword) {
                 $_SESSION['Id'] = $userId;
                 $_SESSION['Username'] = $dbUsername;
                 $_SESSION['UserType'] = $userType;

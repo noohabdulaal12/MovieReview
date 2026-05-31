@@ -27,7 +27,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
                 $messageType = 'danger';
             } else {
                 $userId = $_SESSION['Id'];
-                $commentSql = 'INSERT INTO Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?)';
+                $commentSql = 'INSERT INTO Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE CommentText = VALUES(CommentText)';
                 $commentStmt = mysqli_prepare($conn, $commentSql);
                 mysqli_stmt_bind_param($commentStmt, 'iis', $userId, $movieId, $commentText);
 
@@ -298,7 +298,7 @@ if ($movie != null) {
 
                                         <?php if (isset($_SESSION['UserType']) && $_SESSION['UserType'] == 'admin') { ?>
                                             <form action="movie-details.php?id=<?php echo $movieId; ?>" method="post">
-                                                <input type="hidden" name="comment_id" value="<?php echo $comment['Id']; ?>">
+                                                <input type="hidden" name="comment_id" value="<?php echo $comment['UserId']; ?>">
                                                 <button type="submit" name="delete_comment" class="btn btn-outline-danger btn-sm">Delete</button>
                                             </form>
                                         <?php } ?>
