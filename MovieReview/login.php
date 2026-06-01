@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $message = 'Please enter both username and password.';
     } else {
         $encryptionKey = 'sUpErsAlty392942';
-        $sql = 'SELECT Id, Username, CAST(AES_DECRYPT(Password, ?) AS CHAR) as DecryptedPassword, UserType FROM Users WHERE Username = ?';
+        $sql = 'SELECT Id, Username, CAST(AES_DECRYPT(Password, ?) AS CHAR) as DecryptedPassword, UserType FROM S2G1Users WHERE Username = ?';
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, 'ss', $encryptionKey, $username);
         mysqli_stmt_execute($stmt);

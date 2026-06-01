@@ -21,7 +21,7 @@ if ($commentText == '') {
 
 // prepared statement to safely insert comment into the database
 // on duplicate key update allows the user to update their existing comment
-$sql  = 'INSERT INTO Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE CommentText = VALUES(CommentText)';
+$sql  = 'INSERT INTO S2G1Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE CommentText = VALUES(CommentText)';
 $stmt = mysqli_prepare($conn, $sql);
 mysqli_stmt_bind_param($stmt, 'iis', $userId, $movieId, $commentText);
 
