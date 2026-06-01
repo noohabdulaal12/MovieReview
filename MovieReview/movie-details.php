@@ -31,7 +31,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 $userId = $_SESSION['Id'];
                 // prepared statement to safely insert comment
-                $commentSql = 'INSERT INTO Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE CommentText = VALUES(CommentText)';
+                $commentSql = 'INSERT INTO S2G1Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE CommentText = VALUES(CommentText)';
                 $commentStmt = mysqli_prepare($conn, $commentSql);
                 mysqli_stmt_bind_param($commentStmt, 'iis', $userId, $movieId, $commentText);
 
@@ -62,7 +62,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 $userId = $_SESSION['Id'];
                 // prepared statement to insert or update rating
-                $ratingSql = 'INSERT INTO Ratings (UserId, MovieId, StarCount)
+                $ratingSql = 'INSERT INTO S2G1Ratings (UserId, MovieId, StarCount)
                               VALUES (?, ?, ?)
                               ON DUPLICATE KEY UPDATE StarCount = VALUES(StarCount)';
                 $ratingStmt = mysqli_prepare($conn, $ratingSql);
@@ -85,7 +85,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['delete_comment'])) {
         if (isset($_SESSION['UserType']) && $_SESSION['UserType'] == 'admin') {
             $commentId = (int) $_POST['comment_id'];
-            $deleteSql = 'DELETE FROM Comments WHERE UserId = ? AND MovieId = ?';
+            $deleteSql = 'DELETE FROM S2G1Comments WHERE UserId = ? AND MovieId = ?';
             $deleteStmt = mysqli_prepare($conn, $deleteSql);
             mysqli_stmt_bind_param($deleteStmt, 'ii', $commentId, $movieId);
 
@@ -135,7 +135,7 @@ if ($movieId > 0) {
 // get trigger log count to show how many rating events have been recorded
 $logCount = 0;
 if ($movie != null) {
-    $logSql  = 'SELECT COUNT(*) FROM RatingLog WHERE MovieId = ?';
+    $logSql  = 'SELECT COUNT(*) FROM S2G1RatingLog WHERE MovieId = ?';
     $logStmt = mysqli_prepare($conn, $logSql);
     mysqli_stmt_bind_param($logStmt, 'i', $movieId);
     mysqli_stmt_execute($logStmt);
@@ -148,8 +148,8 @@ if ($movie != null) {
 $comments = [];
 if ($movie != null) {
     $commentsSql = "SELECT c.UserId, c.CommentText, c.CreatedAt, u.Username
-                    FROM Comments c
-                    INNER JOIN Users u ON c.UserId = u.Id
+                    FROM S2G1Comments c
+                    INNER JOIN S2G1Users u ON c.UserId = u.Id
                     WHERE c.MovieId = ?
                     ORDER BY c.CreatedAt DESC";
     $commentsStmt = mysqli_prepare($conn, $commentsSql);

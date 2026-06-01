@@ -22,7 +22,7 @@ if (isset($_POST['delete_user'])) {
         $message     = 'You cannot delete your own account.';
         $messageType = 'danger';
     } else {
-        $sql  = 'DELETE FROM Users WHERE Id = ?';
+        $sql  = 'DELETE FROM S2G1Users WHERE Id = ?';
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, 'i', $deleteUserId);
         if (mysqli_stmt_execute($stmt)) {
@@ -40,7 +40,7 @@ if (isset($_POST['delete_user'])) {
 // admin can remove any movie from the system regardless of who created it
 if (isset($_POST['delete_movie'])) {
     $deleteMovieId = (int) $_POST['movie_id'];
-    $sql  = 'DELETE FROM Movies WHERE Id = ?';
+    $sql  = 'DELETE FROM S2G1Movies WHERE Id = ?';
     $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, 'i', $deleteMovieId);
     if (mysqli_stmt_execute($stmt)) {
@@ -55,7 +55,7 @@ if (isset($_POST['delete_movie'])) {
 
 // get all users for the manage users table
 $users = [];
-$userResult = mysqli_query($conn, 'SELECT Id, Username, UserType, CreatedAt FROM Users ORDER BY CreatedAt DESC');
+$userResult = mysqli_query($conn, 'SELECT Id, Username, UserType, CreatedAt FROM S2G1Users ORDER BY CreatedAt DESC');
 while ($row = mysqli_fetch_assoc($userResult)) {
     $users[] = $row;
 }
@@ -63,9 +63,9 @@ while ($row = mysqli_fetch_assoc($userResult)) {
 // get all movies with creator name and category for the manage movies table
 $movies = [];
 $movieSql = 'SELECT m.Id, m.Title, m.AdditionDate, m.ViewCount, c.Category, u.Username
-             FROM Movies m
-             INNER JOIN Categories c ON m.CategoryId = c.Id
-             INNER JOIN Users u ON m.CreatorId = u.Id
+             FROM S2G1Movies m
+             INNER JOIN S2G1Categories c ON m.CategoryId = c.Id
+             INNER JOIN S2G1Users u ON m.CreatorId = u.Id
              ORDER BY m.AdditionDate DESC';
 $movieResult = mysqli_query($conn, $movieSql);
 while ($row = mysqli_fetch_assoc($movieResult)) {
@@ -82,8 +82,8 @@ if (isset($_POST['report_popular'])) {
 
     if ($reportStartDate != '' && $reportEndDate != '') {
         $reportSql  = 'SELECT m.Title, m.ViewCount, m.AdditionDate, u.Username
-                       FROM Movies m
-                       INNER JOIN Users u ON m.CreatorId = u.Id
+                       FROM S2G1Movies m
+                       INNER JOIN S2G1Users u ON m.CreatorId = u.Id
                        WHERE m.AdditionDate BETWEEN ? AND ?
                        ORDER BY m.ViewCount DESC';
         $reportStmt = mysqli_prepare($conn, $reportSql);
@@ -105,9 +105,9 @@ if (isset($_POST['report_creator'])) {
 
     if ($searchCreator != '') {
         $creatorSql  = 'SELECT m.Title, m.AdditionDate, m.ViewCount, c.Category
-                        FROM Movies m
-                        INNER JOIN Users u ON m.CreatorId = u.Id
-                        INNER JOIN Categories c ON m.CategoryId = c.Id
+                        FROM S2G1Movies m
+                        INNER JOIN S2G1Users u ON m.CreatorId = u.Id
+                        INNER JOIN S2G1Categories c ON m.CategoryId = c.Id
                         WHERE u.Username LIKE ?
                         ORDER BY m.AdditionDate DESC';
         $creatorStmt = mysqli_prepare($conn, $creatorSql);

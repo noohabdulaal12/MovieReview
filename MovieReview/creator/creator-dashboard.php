@@ -29,7 +29,7 @@ if (isset($_POST['add_movie'])) {
         $messageType = 'danger';
     } else {
         // prepared statement to safely insert movie into database
-        $sql  = 'INSERT INTO Movies (Title, Description, ImageLink, VideoLink, AdditionDate, CreatorId, CategoryId, ViewCount) VALUES (?, ?, ?, ?, ?, ?, ?, 0)';
+        $sql  = 'INSERT INTO S2G1Movies (Title, Description, ImageLink, VideoLink, AdditionDate, CreatorId, CategoryId, ViewCount) VALUES (?, ?, ?, ?, ?, ?, ?, 0)';
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, 'sssssii', $title, $description, $imageLink, $videoLink, $addDate, $creatorId, $categoryId);
 
@@ -58,7 +58,7 @@ if (isset($_POST['edit_movie'])) {
         $messageType = 'danger';
     } else {
         // prepared statement to safely update movie and only allows creator to edit their own movies
-        $sql  = 'UPDATE Movies SET Title=?, Description=?, ImageLink=?, VideoLink=?, CategoryId=? WHERE Id=? AND CreatorId=?';
+        $sql  = 'UPDATE S2G1Movies SET Title=?, Description=?, ImageLink=?, VideoLink=?, CategoryId=? WHERE Id=? AND CreatorId=?';
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, 'ssssiii', $title, $description, $imageLink, $videoLink, $categoryId, $editId, $creatorId);
 
@@ -77,7 +77,7 @@ if (isset($_POST['edit_movie'])) {
 if (isset($_POST['delete_movie'])) {
     $deleteId = (int) $_POST['delete_id'];
     // prepared statement ensures creator can only delete their own movies
-    $sql  = 'DELETE FROM Movies WHERE Id=? AND CreatorId=?';
+    $sql  = 'DELETE FROM S2G1Movies WHERE Id=? AND CreatorId=?';
     $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, 'ii', $deleteId, $creatorId);
 
@@ -94,7 +94,7 @@ if (isset($_POST['delete_movie'])) {
 // fetch categories
 // used to populate the category dropdown in add/edit forms
 $categories = [];
-$catResult  = mysqli_query($conn, 'SELECT Id, Category FROM Categories ORDER BY Category ASC');
+$catResult  = mysqli_query($conn, 'SELECT Id, Category FROM S2G1Categories ORDER BY Category ASC');
 while ($row = mysqli_fetch_assoc($catResult)) {
     $categories[] = $row;
 }
@@ -103,8 +103,8 @@ while ($row = mysqli_fetch_assoc($catResult)) {
 // only gets movies belonging to the logged in creator using session id
 $myMovies  = [];
 $movieSql  = 'SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.AdditionDate, m.ViewCount, c.Category
-              FROM Movies m
-              INNER JOIN Categories c ON m.CategoryId = c.Id
+              FROM S2G1Movies m
+              INNER JOIN S2G1Categories c ON m.CategoryId = c.Id
               WHERE m.CreatorId = ?
               ORDER BY m.AdditionDate DESC';
 $movieStmt = mysqli_prepare($conn, $movieSql);
@@ -121,7 +121,7 @@ mysqli_stmt_close($movieStmt);
 $editMovie = null;
 if (isset($_GET['edit'])) {
     $editId     = (int) $_GET['edit'];
-    $editSql    = 'SELECT * FROM Movies WHERE Id=? AND CreatorId=?';
+    $editSql    = 'SELECT * FROM S2G1Movies WHERE Id=? AND CreatorId=?';
     $editStmt   = mysqli_prepare($conn, $editSql);
     mysqli_stmt_bind_param($editStmt, 'ii', $editId, $creatorId);
     mysqli_stmt_execute($editStmt);

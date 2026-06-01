@@ -2,9 +2,9 @@
 // Shared database connection for the Movie Review System.
 
 $dbHost = 'localhost';
-$dbUsername = 'u202203875';
-$dbPassword = 'asdASD123!';
-$dbName = 'db202203875';
+$dbUsername = 'u202304453';
+$dbPassword = '2525@@DeoxyRiboNucleicAcid';
+$dbName = 'db202304453';
 
 $conn = mysqli_connect($dbHost, $dbUsername, $dbPassword, $dbName);
 

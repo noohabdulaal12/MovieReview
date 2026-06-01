@@ -60,7 +60,7 @@ $currentPage   = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $offset        = ($currentPage - 1) * $moviesPerPage;
 
 // get categories for the navbar
-$categorySql    = 'SELECT Id, Category FROM Categories ORDER BY Category ASC';
+$categorySql    = 'SELECT Id, Category FROM S2G1Categories ORDER BY Category ASC';
 $categoryResult = mysqli_query($conn, $categorySql);
 
 // build where clause based on what filters the user selected
@@ -99,7 +99,7 @@ if ($creator != '') {
 }
 
 // count total matching movies so we know how many pages to show
-$countSql  = "SELECT COUNT(*) FROM Movies m INNER JOIN Users u ON m.CreatorId = u.Id" . $where;
+$countSql  = "SELECT COUNT(*) FROM S2G1Movies m INNER JOIN S2G1Users u ON m.CreatorId = u.Id" . $where;
 $countStmt = mysqli_prepare($conn, $countSql);
 if ($countStmt) {
     bindParams($countStmt, $types, $params);
@@ -117,8 +117,8 @@ $orderBy = ($sort == 'popular') ? ' ORDER BY m.ViewCount DESC' : ' ORDER BY m.Ad
 
 // main query with limit and offset for pagination
 $movieSql  = "SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.AdditionDate, m.ViewCount, u.Username
-              FROM Movies m
-              INNER JOIN Users u ON m.CreatorId = u.Id"
+              FROM S2G1Movies m
+              INNER JOIN S2G1Users u ON m.CreatorId = u.Id"
              . $where . $orderBy . " LIMIT ? OFFSET ?";
 
 // add the pagination values to the params array
@@ -175,8 +175,17 @@ $queryString = $queryString ? $queryString . '&' : '';
                 <div class="d-flex gap-2">
                     <?php
                     session_start();
-                    if (isset($_SESSION['Id'])) { ?>
-                        <span class="text-light small mt-1">Hi, <?php echo htmlspecialchars($_SESSION['Username']); ?></span>
+                    if (isset($_SESSION['Id'])) { 
+                        ?> <span class="text-light small mt-1">Hi, <?php echo htmlspecialchars($_SESSION['Username']); ?></span> <?php
+                        if ($_SESSION['UserType'] == "admin")
+                        {
+                            ?> <a class="btn btn-outline-light btn-sm" href="admin/admin-dashboard.php">Admin Dashboard</a> <?php
+                        }
+                        else if ($_SESSION['UserType'] == "creator")
+                        {
+                            ?> <a class="btn btn-outline-light btn-sm" href="creator/creator-dashboard.php">Creator Dashboard</a> <?php
+                        }
+                        ?>
                         <a class="btn btn-outline-light btn-sm" href="logout.php">Logout</a>
                     <?php } else { ?>
                         <a class="btn btn-outline-light btn-sm" href="login.php">Login</a>

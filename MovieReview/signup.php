@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $message = 'Please choose a valid user type.';
         $messageType = 'danger';
     } else {
-        $checkSql = 'SELECT Id FROM Users WHERE Username = ?';
+        $checkSql = 'SELECT Id FROM S2G1Users WHERE Username = ?';
         $checkStmt = mysqli_prepare($conn, $checkSql);
         mysqli_stmt_bind_param($checkStmt, 's', $username);
         mysqli_stmt_execute($checkStmt);
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $messageType = 'danger';
         } else {
             $encryptionKey = 'sUpErsAlty392942';
-            $insertSql = 'INSERT INTO Users (Username, Password, UserType, CreatedAt) VALUES (?, AES_ENCRYPT(?, ?), ?, NOW())';
+            $insertSql = 'INSERT INTO S2G1Users (Username, Password, UserType, CreatedAt) VALUES (?, AES_ENCRYPT(?, ?), ?, NOW())';
             $insertStmt = mysqli_prepare($conn, $insertSql);
             mysqli_stmt_bind_param($insertStmt, 'ssss', $username, $password, $encryptionKey, $userType);
 

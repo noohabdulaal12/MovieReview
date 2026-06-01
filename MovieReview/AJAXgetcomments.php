@@ -6,8 +6,8 @@ $movieId = (int) $_GET['movie_id'];
 
 // fetch all comments for this movie joined with the username
 $sql  = "SELECT c.UserId, c.CommentText, c.CreatedAt, u.Username
-         FROM Comments c
-         INNER JOIN Users u ON c.UserId = u.Id
+         FROM S2G1Comments c
+         INNER JOIN S2G1Users u ON c.UserId = u.Id
          WHERE c.MovieId = ?
          ORDER BY c.CreatedAt DESC";
 $stmt = mysqli_prepare($conn, $sql);

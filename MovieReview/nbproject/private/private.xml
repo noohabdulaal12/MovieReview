@@ -3,15 +3,8 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/index.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/movie-details.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/AJAXcomments.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/AJAXgetcomments.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/includes/db_connect.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/login.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/creator/creator-dashboard.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/admin/admin-dashboard.php</file>
-            <file>file:/C:/Users/Dino/Desktop/MovieReview/MovieReview/css/style.css</file>
+            <file>file:/C:/Projects/MovieReview/MovieReview/includes/db_connect.php</file>
+            <file>file:/C:/Projects/MovieReview/MovieReview/index.php</file>
         </group>
     </open-files>
 </project-private>
