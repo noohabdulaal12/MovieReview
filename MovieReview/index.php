@@ -5,6 +5,7 @@ error_reporting(E_ALL);
 
 include_once 'includes/db_connect.php';
 
+// helper function to bind dynamic parameters to prepared statements
 function bindParams($stmt, $types, $params)
 {
     if ($types == '') {
@@ -22,6 +23,7 @@ function bindParams($stmt, $types, $params)
     call_user_func_array('mysqli_stmt_bind_param', $bindValues);
 }
 
+// get search inputs from the url
 $keyword = '';
 if (isset($_GET['keyword'])) {
     $keyword = trim($_GET['keyword']);
@@ -52,59 +54,89 @@ if (isset($_GET['category'])) {
     $categoryId = (int) $_GET['category'];
 }
 
-$categorySql = 'SELECT Id, Category FROM Categories ORDER BY Category ASC';
+// pagination shows 10 movies per page
+$moviesPerPage = 10;
+$currentPage   = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+$offset        = ($currentPage - 1) * $moviesPerPage;
+
+// get categories for the navbar
+$categorySql    = 'SELECT Id, Category FROM Categories ORDER BY Category ASC';
 $categoryResult = mysqli_query($conn, $categorySql);
 
-$movieSql = "SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.AdditionDate, m.ViewCount, u.Username
-             FROM Movies m
-             INNER JOIN Users u ON m.CreatorId = u.Id";
-
-$types = '';
+// build where clause based on what filters the user selected
+$where  = ' WHERE 1=1';
+$types  = '';
 $params = [];
 
 if ($categoryId > 0) {
-    $movieSql .= ' AND m.CategoryId = ?';
-    $types .= 'i';
+    $where  .= ' AND m.CategoryId = ?';
+    $types  .= 'i';
     $params[] = $categoryId;
 }
 
 if ($keyword != '') {
-    $movieSql .= ' AND MATCH(m.Title, m.Description) AGAINST(?)';
-    $types .= 's';
+    $where  .= ' AND MATCH(m.Title, m.Description) AGAINST(?)';
+    $types  .= 's';
     $params[] = $keyword;
 }
 
 if ($startDate != '') {
-    $movieSql .= ' AND m.AdditionDate >= ?';
-    $types .= 's';
+    $where  .= ' AND m.AdditionDate >= ?';
+    $types  .= 's';
     $params[] = $startDate;
 }
 
 if ($endDate != '') {
-    $movieSql .= ' AND m.AdditionDate <= ?';
-    $types .= 's';
+    $where  .= ' AND m.AdditionDate <= ?';
+    $types  .= 's';
     $params[] = $endDate;
 }
 
 if ($creator != '') {
-    $movieSql .= ' AND u.Username LIKE ?';
-    $types .= 's';
+    $where  .= ' AND u.Username LIKE ?';
+    $types  .= 's';
     $params[] = '%' . $creator . '%';
 }
 
-if ($sort == 'popular') {
-    $movieSql .= ' ORDER BY m.ViewCount DESC';
-} else {
-    $movieSql .= ' ORDER BY m.AdditionDate DESC';
+// count total matching movies so we know how many pages to show
+$countSql  = "SELECT COUNT(*) FROM Movies m INNER JOIN Users u ON m.CreatorId = u.Id" . $where;
+$countStmt = mysqli_prepare($conn, $countSql);
+if ($countStmt) {
+    bindParams($countStmt, $types, $params);
+    mysqli_stmt_execute($countStmt);
+    mysqli_stmt_bind_result($countStmt, $totalMovies);
+    mysqli_stmt_fetch($countStmt);
+    mysqli_stmt_close($countStmt);
 }
 
-$movieStmt = mysqli_prepare($conn, $movieSql);
+// work out total number of pages
+$totalPages = ceil($totalMovies / $moviesPerPage);
 
+// sort order based on user selection
+$orderBy = ($sort == 'popular') ? ' ORDER BY m.ViewCount DESC' : ' ORDER BY m.AdditionDate DESC';
+
+// main query with limit and offset for pagination
+$movieSql  = "SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.AdditionDate, m.ViewCount, u.Username
+              FROM Movies m
+              INNER JOIN Users u ON m.CreatorId = u.Id"
+             . $where . $orderBy . " LIMIT ? OFFSET ?";
+
+// add the pagination values to the params array
+$paginationTypes  = $types . 'ii';
+$paginationParams = array_merge($params, [$moviesPerPage, $offset]);
+
+$movieStmt = mysqli_prepare($conn, $movieSql);
 if ($movieStmt) {
-    bindParams($movieStmt, $types, $params);
+    bindParams($movieStmt, $paginationTypes, $paginationParams);
     mysqli_stmt_execute($movieStmt);
     mysqli_stmt_bind_result($movieStmt, $movieId, $title, $description, $imageLink, $videoLink, $additionDate, $viewCount, $creatorUsername);
 }
+
+// build the query string for pagination links so filters stay active when changing page
+$queryParams = $_GET;
+unset($queryParams['page']);
+$queryString = http_build_query($queryParams);
+$queryString = $queryString ? $queryString . '&' : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -141,8 +173,15 @@ if ($movieStmt) {
                 </ul>
 
                 <div class="d-flex gap-2">
-                    <a class="btn btn-outline-light btn-sm" href="login.php">Login</a>
-                    <a class="btn btn-primary btn-sm" href="signup.php">Sign Up</a>
+                    <?php
+                    session_start();
+                    if (isset($_SESSION['Id'])) { ?>
+                        <span class="text-light small mt-1">Hi, <?php echo htmlspecialchars($_SESSION['Username']); ?></span>
+                        <a class="btn btn-outline-light btn-sm" href="logout.php">Logout</a>
+                    <?php } else { ?>
+                        <a class="btn btn-outline-light btn-sm" href="login.php">Login</a>
+                        <a class="btn btn-primary btn-sm" href="signup.php">Sign Up</a>
+                    <?php } ?>
                 </div>
             </div>
         </div>
@@ -243,6 +282,35 @@ if ($movieStmt) {
                 </div>
             <?php } ?>
         </div>
+
+        <?php if ($totalPages > 1) { ?>
+            <nav class="mt-4" aria-label="Movie pagination">
+                <ul class="pagination justify-content-center">
+
+                    <!-- previous page button, disabled when on first page -->
+                    <li class="page-item <?php if ($currentPage == 1) echo 'disabled'; ?>">
+                        <a class="page-link" href="index.php?<?php echo $queryString; ?>page=<?php echo $currentPage - 1; ?>">Previous</a>
+                    </li>
+
+                    <!-- numbered page buttons -->
+                    <?php for ($i = 1; $i <= $totalPages; $i++) { ?>
+                        <li class="page-item <?php if ($i == $currentPage) echo 'active'; ?>">
+                            <a class="page-link" href="index.php?<?php echo $queryString; ?>page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                        </li>
+                    <?php } ?>
+
+                    <!-- next page button, disabled when on last page -->
+                    <li class="page-item <?php if ($currentPage == $totalPages) echo 'disabled'; ?>">
+                        <a class="page-link" href="index.php?<?php echo $queryString; ?>page=<?php echo $currentPage + 1; ?>">Next</a>
+                    </li>
+
+                </ul>
+                <p class="text-center text-muted small">
+                    Page <?php echo $currentPage; ?> of <?php echo $totalPages; ?> (<?php echo $totalMovies; ?> movies total)
+                </p>
+            </nav>
+        <?php } ?>
+
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

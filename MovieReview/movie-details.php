@@ -14,7 +14,10 @@ if (isset($_GET['id'])) {
 $message = '';
 $messageType = '';
 
+// handle post requests for comment, rating and delete actions
 if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
+
+    // add comment - only for logged in users
     if (isset($_POST['add_comment'])) {
         if (!isset($_SESSION['Id'])) {
             $message = 'Please login to comment.';
@@ -27,6 +30,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
                 $messageType = 'danger';
             } else {
                 $userId = $_SESSION['Id'];
+                // prepared statement to safely insert comment
                 $commentSql = 'INSERT INTO Comments (UserId, MovieId, CommentText) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE CommentText = VALUES(CommentText)';
                 $commentStmt = mysqli_prepare($conn, $commentSql);
                 mysqli_stmt_bind_param($commentStmt, 'iis', $userId, $movieId, $commentText);
@@ -44,6 +48,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
+    // add rating - only for logged in users
     if (isset($_POST['add_rating'])) {
         if (!isset($_SESSION['Id'])) {
             $message = 'Please login to rate this movie.';
@@ -56,6 +61,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
                 $messageType = 'danger';
             } else {
                 $userId = $_SESSION['Id'];
+                // prepared statement to insert or update rating
                 $ratingSql = 'INSERT INTO Ratings (UserId, MovieId, StarCount)
                               VALUES (?, ?, ?)
                               ON DUPLICATE KEY UPDATE StarCount = VALUES(StarCount)';
@@ -75,6 +81,7 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
+    // delete comment - only admin can do this
     if (isset($_POST['delete_comment'])) {
         if (isset($_SESSION['UserType']) && $_SESSION['UserType'] == 'admin') {
             $commentId = (int) $_POST['comment_id'];
@@ -95,55 +102,50 @@ if ($movieId > 0 && $_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
+// get movie details using the stored procedure
 $movie = null;
+$averageRating = 0;
+$ratingCount = 0;
 
 if ($movieId > 0) {
-    $sql = "SELECT m.Id, m.Title, m.Description, m.ImageLink, m.VideoLink, m.ViewCount,
-                   c.Category, u.Username
-            FROM Movies m
-            INNER JOIN Categories c ON m.CategoryId = c.Id
-            INNER JOIN Users u ON m.CreatorId = u.Id WHERE m.Id = ?";
-
-    $stmt = mysqli_prepare($conn, $sql);
+    // call stored procedure which returns movie details and average rating in one query
+    $stmt = mysqli_prepare($conn, 'CALL GetMovieDetails(?)');
     mysqli_stmt_bind_param($stmt, 'i', $movieId);
     mysqli_stmt_execute($stmt);
-    mysqli_stmt_bind_result($stmt, $id, $title, $description, $imageLink, $videoLink, $viewCount, $categoryName, $username);
+    $result = mysqli_stmt_get_result($stmt);
 
-    if (mysqli_stmt_fetch($stmt)) {
+    if ($row = mysqli_fetch_assoc($result)) {
         $movie = [
-            'Id' => $id,
-            'Title' => $title,
-            'Description' => $description,
-            'ImageLink' => $imageLink,
-            'VideoLink' => $videoLink,
-            'ViewCount' => $viewCount,
-            'Category' => $categoryName,
-            'Username' => $username
+            'Id'          => $row['Id'],
+            'Title'       => $row['Title'],
+            'Description' => $row['Description'],
+            'ImageLink'   => $row['ImageLink'],
+            'VideoLink'   => $row['VideoLink'],
+            'ViewCount'   => $row['ViewCount'],
+            'Category'    => $row['Category'],
+            'Username'    => $row['Username']
         ];
+        $averageRating = $row['AvgRating'];
+        $ratingCount   = $row['RatingCount'];
     }
 
     mysqli_stmt_close($stmt);
 }
 
-$averageRating = 0;
-$ratingCount = 0;
-
+// get trigger log count to show how many rating events have been recorded
+$logCount = 0;
 if ($movie != null) {
-    $ratingSummarySql = 'SELECT AVG(StarCount), COUNT(*) FROM Ratings WHERE MovieId = ?';
-    $ratingSummaryStmt = mysqli_prepare($conn, $ratingSummarySql);
-    mysqli_stmt_bind_param($ratingSummaryStmt, 'i', $movieId);
-    mysqli_stmt_execute($ratingSummaryStmt);
-    mysqli_stmt_bind_result($ratingSummaryStmt, $averageRating, $ratingCount);
-    mysqli_stmt_fetch($ratingSummaryStmt);
-    mysqli_stmt_close($ratingSummaryStmt);
-
-    if ($averageRating == null) {
-        $averageRating = 0;
-    }
+    $logSql  = 'SELECT COUNT(*) FROM RatingLog WHERE MovieId = ?';
+    $logStmt = mysqli_prepare($conn, $logSql);
+    mysqli_stmt_bind_param($logStmt, 'i', $movieId);
+    mysqli_stmt_execute($logStmt);
+    mysqli_stmt_bind_result($logStmt, $logCount);
+    mysqli_stmt_fetch($logStmt);
+    mysqli_stmt_close($logStmt);
 }
 
+// get all comments for this movie ordered by newest first
 $comments = [];
-
 if ($movie != null) {
     $commentsSql = "SELECT c.UserId, c.CommentText, c.CreatedAt, u.Username
                     FROM Comments c
@@ -157,10 +159,10 @@ if ($movie != null) {
 
     while (mysqli_stmt_fetch($commentsStmt)) {
         $comments[] = [
-            'UserId' => $commentId,
+            'UserId'      => $commentId,
             'CommentText' => $commentText,
-            'CreatedAt' => $commentDate,
-            'Username' => $commentUsername
+            'CreatedAt'   => $commentDate,
+            'Username'    => $commentUsername
         ];
     }
 
@@ -224,6 +226,11 @@ if ($movie != null) {
                         <strong><?php echo htmlspecialchars($movie['ViewCount']); ?></strong>
                     </p>
 
+                    <!-- trigger log count shows how many times a rating has been inserted -->
+                    <p class="text-muted mb-2">
+                        Rating events logged (trigger): <strong><?php echo $logCount; ?></strong>
+                    </p>
+
                     <p class="text-muted mb-4">
                         Average rating:
                         <strong><?php echo number_format($averageRating, 1); ?> / 5</strong>
@@ -269,14 +276,13 @@ if ($movie != null) {
                         <?php if (!isset($_SESSION['Id'])) { ?>
                             <div class="alert alert-info mb-0">Please login to comment.</div>
                         <?php } else { ?>
-                            <form action="movie-details.php?id=<?php echo $movieId; ?>" method="post">
-                                <div class="mb-3">
-                                    <label for="commentText" class="form-label">Comment</label>
-                                    <textarea class="form-control" id="commentText" name="comment_text" rows="4"></textarea>
-                                </div>
-
-                                <button type="submit" name="add_comment" class="btn btn-primary">Add Comment</button>
-                            </form>
+                            <!-- ajax comment form submits without reloading the page using jquery and ajax -->
+                            <div class="mb-3">
+                                <label for="commentText" class="form-label">Comment</label>
+                                <textarea class="form-control" id="commentText" name="comment_text" rows="4"></textarea>
+                            </div>
+                            <button type="button" id="ajaxCommentBtn" class="btn btn-primary">Add Comment</button>
+                            <div id="ajaxCommentMsg" class="mt-2"></div>
                         <?php } ?>
                     </div>
                 </div>
@@ -285,6 +291,7 @@ if ($movie != null) {
                     <div class="content-box">
                         <h2 class="h4">Comments</h2>
 
+                        <div id="commentsList">
                         <?php if (count($comments) == 0) { ?>
                             <div class="alert alert-info mb-0">No comments yet.</div>
                         <?php } else { ?>
@@ -297,6 +304,7 @@ if ($movie != null) {
                                         </div>
 
                                         <?php if (isset($_SESSION['UserType']) && $_SESSION['UserType'] == 'admin') { ?>
+                                            <!-- admin delete button for removing inappropriate comments -->
                                             <form action="movie-details.php?id=<?php echo $movieId; ?>" method="post">
                                                 <input type="hidden" name="comment_id" value="<?php echo $comment['UserId']; ?>">
                                                 <button type="submit" name="delete_comment" class="btn btn-outline-danger btn-sm">Delete</button>
@@ -307,12 +315,53 @@ if ($movie != null) {
                                 </div>
                             <?php } ?>
                         <?php } ?>
+                        </div>
                     </div>
                 </div>
             </div>
         <?php } ?>
     </main>
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <?php if ($movie != null && isset($_SESSION['Id'])) { ?>
+    <script>
+        // jquery and ajax submit comment without reloading the page
+        $('#ajaxCommentBtn').on('click', function () {
+            var commentText = $('#commentText').val().trim();
+            var movieId = <?php echo $movieId; ?>;
+
+            if (commentText === '') {
+                $('#ajaxCommentMsg').html('<div class="alert alert-danger">Comment cannot be empty.</div>');
+                return;
+            }
+
+            // disable button while request is in progress
+            $('#ajaxCommentBtn').prop('disabled', true).text('Submitting...');
+
+            $.ajax({
+                url: 'AJAXcomments.php',
+                method: 'POST',
+                data: { movie_id: movieId, comment_text: commentText },
+                success: function (response) {
+                    $('#ajaxCommentMsg').html('<div class="alert alert-success">' + response + '</div>');
+                    $('#commentText').val('');
+                    $('#ajaxCommentBtn').prop('disabled', false).text('Add Comment');
+
+                    // reload the comments list without refreshing the page
+                    $.get('AJAXgetcomments.php', { movie_id: movieId }, function (html) {
+                        $('#commentsList').html(html);
+                    });
+                },
+                error: function () {
+                    $('#ajaxCommentMsg').html('<div class="alert alert-danger">Error submitting comment. Please try again.</div>');
+                    $('#ajaxCommentBtn').prop('disabled', false).text('Add Comment');
+                }
+            });
+        });
+    </script>
+    <?php } ?>
+
 </body>
 </html>
