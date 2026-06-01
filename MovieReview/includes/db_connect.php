@@ -3,7 +3,7 @@
 
 $dbHost = 'localhost';
 $dbUsername = 'u202304453';
-$dbPassword = '2525@@DeoxyRiboNucleicAcid';
+$dbPassword = 'asdASD123!';
 $dbName = 'db202304453';
 
 $conn = mysqli_connect($dbHost, $dbUsername, $dbPassword, $dbName);
