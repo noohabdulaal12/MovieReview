@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="index.php">Movie Review System</a>
+            <a class="navbar-brand" href="index.php"><img src="images/logo.png" alt="Movie Review System" height="38"></a>
             <div class="ms-auto">
                 <a class="btn btn-outline-light btn-sm" href="signup.php">Sign Up</a>
             </div>

@@ -181,7 +181,7 @@ if ($movie != null) {
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="index.php">Movie Review System</a>
+            <a class="navbar-brand" href="index.php"><img src="images/logo.png" alt="Movie Review System" height="38"></a>
             <div class="ms-auto d-flex gap-2">
                 <?php if (isset($_SESSION['Id'])) { ?>
                     <a class="btn btn-outline-light btn-sm" href="logout.php">Logout</a>

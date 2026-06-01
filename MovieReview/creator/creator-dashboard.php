@@ -142,8 +142,10 @@ if (isset($_GET['edit'])) {
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="../index.php">Movie Review System</a>
-            <div class="ms-auto">
+            <a class="navbar-brand" href="../index.php"><img src="../images/logo.png" alt="Movie Review System" height="38"></a>
+            <div class="ms-auto d-flex gap-2">
+                <span class="text-light small mt-2">Hi, <?php echo htmlspecialchars($displayUsername); ?></span>
+                <a class="btn btn-outline-light btn-sm" href="../index.php">Home</a>
                 <a class="btn btn-outline-light btn-sm" href="../logout.php">Logout</a>
             </div>
         </div>

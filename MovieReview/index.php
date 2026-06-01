@@ -150,7 +150,7 @@ $queryString = $queryString ? $queryString . '&' : '';
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="index.php">Movie Review System</a>
+            <a class="navbar-brand" href="index.php"><img src="images/logo.png" alt="Movie Review System" height="38"></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
                 <span class="navbar-toggler-icon"></span>
             </button>
