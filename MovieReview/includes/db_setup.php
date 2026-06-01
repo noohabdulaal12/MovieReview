@@ -139,6 +139,8 @@ foreach ($seedQueries as $sql) {
     }
 }
 
+// add fulltext index for keyword search on title and description
+mysqli_query($conn, 'ALTER TABLE Movies ADD FULLTEXT INDEX ft_movies (Title, Description)');
 mysqli_query($conn, "SET FOREIGN_KEY_CHECKS = 1;");
 
 // drop and recreate the trigger for logging rating inserts
